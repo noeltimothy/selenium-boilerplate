@@ -2,43 +2,28 @@
 Target Platform
 Ubuntu
 
-## Install Chrome  
+## Install using Docker
 
-Install Chrome
+The supported Dockerfile creates a basic Ubuntu instance with the following:
+- Selenium
+- BS4 with LXML
+- Chromedriver (Headless only since we don't use XVFB to export display)
 
-```
-sudo apt-get install -y unzip xvfb libxi6 libgconf-2-4
-sudo apt-get install default-jdk
-sudo curl -sS -o - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add
-sudo echo "deb [arch=amd64]  http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
-sudo apt update
-```
-
-## Install Chrome driver
+## Simple code to extract jobs from LinkedIn
 
 ```
-mkdir packages
-cd packages
-wget https://chromedriver.storage.googleapis.com/2.41/chromedriver_linux64.zip
-unzip chromedriver_linux64.zip
-sudo mv chromedriver /usr/bin/chromedriver
-sudo chown root:root /usr/bin/chromedriver
-sudo chmod +x /usr/bin/chromedriver
+>>> from selenium import webdriver
+>>> from bs4 import BeautifulSoup
+>>> jobs_to_search = 'accounting'
+>>> url = F"https://www.linkedin.com/jobs/search/?f_TPR=r604800&geoId=101174742&keywords={jobs_to_search}&location=Canada&sortBy=DD"
+>>> opt = webdriver.ChromeOptions()
+>>> opt.add_argument('headless')
+>>> opt.add_argument('--no-sandbox')
+>>> driver = webdriver.Chrome(options=opt)
+>>> driver.get(url)
+>>> lxml_soup = BeautifulSoup(driver.page_source, 'lxml')
+>>> job_container = lxml_soup.find('ul', class_ = 'jobs-search__results-list')
+>>> company_names = [ job.select_one('img')['alt'] for job in job_container ]
+>>> job_ids = [ job.find('a', href=True)['href'] for job in job_container ]
+>>>
 ```
-
-Download required JAR files + testing.jar
-
-```
-wget https://selenium-release.storage.googleapis.com/3.13/selenium-server-standalone-3.13.0.jar
-wget http://www.java2s.com/Code/JarDownload/testng/testng-6.8.7.jar.zip
-unzip testng-6.8.7.jar.zip
-```
-
-# Start Chrome via Selenium driver
-
-```
-xvfb-run java -Dwebdriver.chrome.driver=/usr/bin/chromedriver -jar selenium-server-standalone-3.13.0.jar &
-chromedriver --url-base=/wd/hub &
-```
-
-
